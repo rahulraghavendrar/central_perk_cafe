@@ -1,0 +1,10 @@
+services:
+  client:
+    build: ./apps/client
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/client:/app
+      - /app/node_modules
+    env_file:
+      - ./apps/client/.env.local
