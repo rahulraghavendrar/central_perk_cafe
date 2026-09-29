@@ -56,26 +56,23 @@ function validateForm(form) {
 }
 
 function getSignupErrorMessage(error, isProfileError = false) {
-  const message = error?.message?.toLowerCase() || ''
-
   if (isProfileError) {
-    if (error?.code === '23505' && message.includes('roll_number')) {
+    if (error?.code === '23505' && String(error?.message || '').toLowerCase().includes('roll_number')) {
       return 'That college roll number is already registered.'
     }
 
     return 'Your account was created, but we could not save your profile. Please contact support.'
   }
 
+  const message = error?.message?.toLowerCase() || ''
+
   if (message.includes('invalid login credentials')) {
     return 'The email or password could not be verified. Please check your details and try again.'
   }
 
-  return 'We could not create your account. Please try again.'
-}
-
-function isExistingAccountError(error) {
-  const message = error?.message?.toLowerCase() || ''
-  return message.includes('already registered') || message.includes('already exists')
+  // Surface the real reason (e.g. "Password should be at least 6 characters")
+  // instead of always falling back to a generic message.
+  return error?.message || 'We could not create your account. Please try again.'
 }
 
 function hasSignupMetadata(user) {
@@ -202,65 +199,43 @@ export default function SignupPage() {
 
     try {
       const email = form.email.trim().toLowerCase()
-      const rollNumber = getRollNumber(email)
-      const metadata = {
-        name: form.name.trim(),
-        roll_number: rollNumber,
-        phone_number: form.phoneNumber.trim(),
-      }
-      const { data: signupData, error: signupError } = await supabase.auth.signUp({
-        email,
-        password: form.password,
-        options: {
-          data: metadata,
-          emailRedirectTo: `${window.location.origin}/signup`,
-        },
+
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          email,
+          password: form.password,
+          phoneNumber: form.phoneNumber.trim(),
+        }),
       })
 
-      if (signupError) {
-        if (!isExistingAccountError(signupError)) {
-          throw signupError
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        if (result.code === 'user_exists') {
+          const { error: loginError } = await supabase.auth.signInWithPassword({
+            email,
+            password: form.password,
+          })
+
+          if (loginError) {
+            throw loginError
+          }
+
+          setForm(initialForm)
+          setSuccessMessage('Account already exists. You have been logged in.')
+          return
         }
 
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-          email,
-          password: form.password,
+        throw Object.assign(new Error(result.error || 'We could not create your account. Please try again.'), {
+          code: result.code,
         })
-
-        if (loginError) {
-          throw loginError
-        }
-
-        setForm(initialForm)
-        setSuccessMessage('Account already exists. You have been logged in.')
-        return
-      }
-
-      if (!signupData.user) {
-        throw new Error('Supabase did not return a user for this signup.')
-      }
-
-      if (!signupData.user.identities?.length) {
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-          email,
-          password: form.password,
-        })
-
-        if (loginError) {
-          throw loginError
-        }
-
-        setForm(initialForm)
-        setSuccessMessage('Account already exists. You have been logged in.')
-        return
       }
 
       setForm(initialForm)
-      setSuccessMessage(
-        signupData.session
-          ? 'Your account has been created successfully.'
-          : 'Your account has been created. Check your college email and click the verification link.'
-      )
+      setSuccessMessage('Your account has been created. Check your college email and click the verification link.')
     } catch (error) {
       setFormError(getSignupErrorMessage(error, error?.isProfileError))
     } finally {

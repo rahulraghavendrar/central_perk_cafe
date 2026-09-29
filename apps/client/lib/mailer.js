@@ -26,10 +26,15 @@ function createTransporter(user, pass) {
  * Determines which mailbox to use based on daily quotas and configuration:
  * Mailbox A is primary (limit: 500 emails/day).
  * Mailbox B is failover when Mailbox A hits 500 or when configured.
+ *
+ * This quota is shared across every email type sent through this module
+ * (password-reset OTPs and signup confirmations both count against the
+ * same 500/day-per-mailbox limit), since mail_log is keyed only on
+ * (mailbox, date), not on what the email was for.
  */
 async function selectActiveMailbox() {
   const today = getTodayDateString()
-  const hasMailboxB = Boolean(process.env.MAILBOX_B_USER && process.env.MAILBOX_B_PASS)
+  const hasMailboxB = Boolean(process.env.MAILBOX_B_EMAIL && process.env.MAILBOX_B_APP_PASSWORD)
 
   // Query mail_log for mailbox_a usage today
   let mailboxACount = 0
@@ -52,16 +57,16 @@ async function selectActiveMailbox() {
   if (mailboxACount >= 500 && hasMailboxB) {
     return {
       mailboxName: 'mailbox_b',
-      user: process.env.MAILBOX_B_USER,
-      pass: process.env.MAILBOX_B_PASS,
+      user: process.env.MAILBOX_B_EMAIL,
+      pass: process.env.MAILBOX_B_APP_PASSWORD,
     }
   }
 
   // Default to mailbox_a
   return {
     mailboxName: 'mailbox_a',
-    user: process.env.MAILBOX_A_USER,
-    pass: process.env.MAILBOX_A_PASS,
+    user: process.env.MAILBOX_A_EMAIL,
+    pass: process.env.MAILBOX_A_APP_PASSWORD,
   }
 }
 
@@ -102,7 +107,7 @@ export async function sendPasswordResetEmail(toEmail, otpCode) {
 
   if (!user || !pass) {
     throw new Error(
-      `Mailbox credentials for ${mailboxName} are missing. Please configure MAILBOX_A_USER and MAILBOX_A_PASS in .env.local`
+      `Mailbox credentials for ${mailboxName} are missing. Please configure MAILBOX_A_EMAIL and MAILBOX_A_APP_PASSWORD in .env.local`
     )
   }
 
@@ -125,6 +130,53 @@ export async function sendPasswordResetEmail(toEmail, otpCode) {
         <p style="font-size: 14px; color: #7a6e65;">This code expires in <strong>10 minutes</strong>.</p>
         <p style="font-size: 13px; color: #8a7e75; margin-top: 24px; border-top: 1px solid #e4d9c9; padding-top: 16px;">
           If you didn't request a password reset, you can safely ignore this email.
+        </p>
+      </div>
+    `,
+  }
+
+  await transporter.sendMail(mailOptions)
+  await logSentEmail(mailboxName)
+
+  return { success: true, mailboxUsed: mailboxName }
+}
+
+/**
+ * Dispatches the signup confirmation email with Central Perk branding.
+ * `confirmationLink` is the real Supabase-generated verification link
+ * (from supabaseAdmin.auth.admin.generateLink), so clicking it confirms
+ * the account exactly like Supabase's own built-in email would have —
+ * we're only replacing who sends the email, not how confirmation works.
+ */
+export async function sendSignupConfirmationEmail(toEmail, confirmationLink, name) {
+  const { mailboxName, user, pass } = await selectActiveMailbox()
+
+  if (!user || !pass) {
+    throw new Error(
+      `Mailbox credentials for ${mailboxName} are missing. Please configure MAILBOX_A_EMAIL and MAILBOX_A_APP_PASSWORD in .env.local`
+    )
+  }
+
+  const transporter = createTransporter(user, pass)
+  const greetingName = name && name.trim() ? name.trim() : 'there'
+
+  const mailOptions = {
+    from: `"Central Perk Cafe" <${user}>`,
+    to: toEmail,
+    subject: 'Confirm your Central Perk Cafe account',
+    text: `Hi ${greetingName},\n\nThanks for signing up for Central Perk Cafe. Confirm your account by opening this link:\n\n${confirmationLink}\n\nIf you didn't create this account, you can safely ignore this email.\n\nWarm regards,\nCentral Perk Cafe Team`,
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; background-color: #f5f0e8; border: 1px solid #e4d9c9; border-radius: 12px; padding: 32px; color: #2e241d;">
+        <h2 style="color: #316c52; margin-top: 0; font-size: 24px;">Central Perk Cafe</h2>
+        <p style="font-size: 15px; line-height: 1.5; color: #5a4f47;">Hi ${greetingName}, thanks for signing up. Confirm your account to get started:</p>
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="${confirmationLink}" style="display: inline-block; background-color: #316c52; color: #fffdf9; text-decoration: none; border-radius: 8px; padding: 14px 28px; font-size: 16px; font-weight: 700;">
+            Confirm your account
+          </a>
+        </div>
+        <p style="font-size: 13px; color: #8a7e75; word-break: break-all;">Or paste this link into your browser: ${confirmationLink}</p>
+        <p style="font-size: 13px; color: #8a7e75; margin-top: 24px; border-top: 1px solid #e4d9c9; padding-top: 16px;">
+          If you didn't create this account, you can safely ignore this email.
         </p>
       </div>
     `,
