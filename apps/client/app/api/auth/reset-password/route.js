@@ -41,16 +41,41 @@ export async function POST(request) {
 
     let userId = profile?.id
 
-    // Fallback: If not in profiles, query auth.users directly via admin
+    // Fallback: If not in profiles, search auth.users directly via admin.
+    // listUsers() only returns ONE PAGE of users at a time (50 by
+    // default) -- calling it with no arguments silently misses anyone
+    // past the first page. We page through explicitly until we find a
+    // match, run out of pages, or hit a safety cap.
     if (!userId) {
-      const { data: userData, error: userError } = await supabaseAdmin.auth.admin.listUsers()
-      if (!userError && userData?.users) {
-        const found = userData.users.find(
+      const perPage = 1000
+      const MAX_PAGES = 20 // 20,000 users is far beyond this app's scale
+      let page = 1
+
+      while (!userId && page <= MAX_PAGES) {
+        const { data: userData, error: userError } = await supabaseAdmin.auth.admin.listUsers({
+          page,
+          perPage,
+        })
+
+        if (userError) {
+          console.error('Error listing users while resolving profile fallback:', userError)
+          break
+        }
+
+        const found = userData?.users?.find(
           (u) => u.email?.toLowerCase() === email.toLowerCase()
         )
+
         if (found) {
           userId = found.id
+          break
         }
+
+        if (!userData?.users || userData.users.length < perPage) {
+          break // reached the last page without a match
+        }
+
+        page += 1
       }
     }
 
@@ -72,6 +97,18 @@ export async function POST(request) {
         { error: updateError.message || 'Failed to update password.' },
         { status: 500 }
       )
+    }
+
+    // Record when the password actually changed, so forgot-password can
+    // enforce its 24h cooldown starting from this moment. Non-fatal if
+    // it fails -- the password change itself already succeeded.
+    const { error: touchError } = await supabaseAdmin
+      .from('profiles')
+      .update({ password_changed_at: new Date().toISOString() })
+      .eq('id', userId)
+
+    if (touchError) {
+      console.error('Error recording password_changed_at:', touchError)
     }
 
     return NextResponse.json({

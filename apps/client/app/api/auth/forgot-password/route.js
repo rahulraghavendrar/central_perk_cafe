@@ -36,7 +36,7 @@ export async function POST(request) {
     // Verify account exists in profiles table
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('id, email')
+      .select('id, email, password_changed_at')
       .eq('email', email)
       .maybeSingle()
 
@@ -53,6 +53,40 @@ export async function POST(request) {
         { error: 'No account found with this college email. Please sign up first.' },
         { status: 404 }
       )
+    }
+
+    // Enforce a 24h cooldown after a real password change so the reset
+    // flow can't be used to spam OTPs or repeatedly reset the same
+    // account right after it was just changed.
+    const PASSWORD_RESET_COOLDOWN_MS = 24 * 60 * 60 * 1000
+    if (profile.password_changed_at) {
+      const changedAtMs = new Date(profile.password_changed_at).getTime()
+      const nextAllowedAtMs = changedAtMs + PASSWORD_RESET_COOLDOWN_MS
+
+      if (Date.now() < nextAllowedAtMs) {
+        return NextResponse.json(
+          {
+            error: 'You recently changed your password. Please wait before requesting another reset.',
+            code: 'cooldown_active',
+            retryAt: new Date(nextAllowedAtMs).toISOString(),
+          },
+          { status: 429 }
+        )
+      }
+    }
+
+    // Invalidate any earlier unused codes for this email (e.g. from a
+    // previous request or a "Resend code" click) so only the code we're
+    // about to send can be used -- otherwise an older, already-sent code
+    // stays valid in parallel until it separately expires.
+    const { error: invalidateError } = await supabaseAdmin
+      .from('password_reset_codes')
+      .update({ used: true })
+      .eq('email', email)
+      .eq('used', false)
+
+    if (invalidateError) {
+      console.error('Error invalidating previous reset codes:', invalidateError)
     }
 
     // Generate secure 6-digit OTP

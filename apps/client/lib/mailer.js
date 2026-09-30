@@ -187,3 +187,145 @@ export async function sendSignupConfirmationEmail(toEmail, confirmationLink, nam
 
   return { success: true, mailboxUsed: mailboxName }
 }
+
+/**
+ * Dispatches the 6-digit device-verification code shown when someone logs
+ * in from a browser we don't recognize yet (see trusted_devices / login
+ * route). Separate template from the password-reset OTP so the subject
+ * line is unambiguous about which flow it's for.
+ */
+export async function sendDeviceVerificationEmail(toEmail, otpCode) {
+  const { mailboxName, user, pass } = await selectActiveMailbox()
+
+  if (!user || !pass) {
+    throw new Error(
+      `Mailbox credentials for ${mailboxName} are missing. Please configure MAILBOX_A_EMAIL and MAILBOX_A_APP_PASSWORD in .env.local`
+    )
+  }
+
+  const transporter = createTransporter(user, pass)
+
+  const mailOptions = {
+    from: `"Central Perk Cafe" <${user}>`,
+    to: toEmail,
+    subject: `New device sign-in code: ${otpCode}`,
+    text: `Hello,\n\nSomeone is signing into your Central Perk Cafe account from a device we don't recognize. If this is you, enter this code to continue:\n\n${otpCode}\n\nThis code will expire in 10 minutes. If this wasn't you, do not share this code with anyone -- just ignore this email and the sign-in attempt will fail on its own.\n\nWarm regards,\nCentral Perk Cafe Team`,
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; background-color: #f5f0e8; border: 1px solid #e4d9c9; border-radius: 12px; padding: 32px; color: #2e241d;">
+        <h2 style="color: #316c52; margin-top: 0; font-size: 24px;">Central Perk Cafe</h2>
+        <p style="font-size: 15px; line-height: 1.5; color: #5a4f47;">Someone is signing into your account from a device we don't recognize. If this is you, enter this code to continue:</p>
+        <div style="text-align: center; margin: 28px 0;">
+          <div style="display: inline-block; background-color: #fffdf9; border: 2px dashed #316c52; border-radius: 8px; padding: 14px 28px; font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #2e241d;">
+            ${otpCode}
+          </div>
+        </div>
+        <p style="font-size: 14px; color: #7a6e65;">This code expires in <strong>10 minutes</strong>.</p>
+        <p style="font-size: 13px; color: #8a7e75; margin-top: 24px; border-top: 1px solid #e4d9c9; padding-top: 16px;">
+          If this wasn't you, don't share this code with anyone -- just ignore this email and the sign-in attempt will fail on its own.
+        </p>
+      </div>
+    `,
+  }
+
+  await transporter.sendMail(mailOptions)
+  await logSentEmail(mailboxName)
+
+  return { success: true, mailboxUsed: mailboxName }
+}
+
+/**
+ * Single neutral "review this sign-in" link used by both device alert
+ * emails below -- deliberately ONE link that only loads a page, rather
+ * than separate pre-answered Yes/No links. That keeps the email itself
+ * inert (safe against corporate mail scanners that prefetch links) and
+ * matches how the actual Yes/No choice works: it's a real button press
+ * on the /device-confirm page, not which link in the email got clicked.
+ */
+function renderConfirmButton(confirmLink) {
+  return `
+    <div style="text-align: center; margin: 28px 0;">
+      <a href="${confirmLink}" style="display: inline-block; background-color: #316c52; color: #fffdf9; text-decoration: none; border-radius: 8px; padding: 14px 28px; font-size: 16px; font-weight: 700;">
+        Review this sign-in
+      </a>
+    </div>
+  `
+}
+
+/**
+ * Sent when someone fails the device-verification code (wrong 6-digit
+ * code on a new device) -- NOT sent for a plain wrong password, only
+ * after a real attempt got past the password check and then failed 2FA.
+ */
+export async function sendDeviceVerificationFailedEmail(toEmail, confirmLink) {
+  const { mailboxName, user, pass } = await selectActiveMailbox()
+
+  if (!user || !pass) {
+    throw new Error(
+      `Mailbox credentials for ${mailboxName} are missing. Please configure MAILBOX_A_EMAIL and MAILBOX_A_APP_PASSWORD in .env.local`
+    )
+  }
+
+  const transporter = createTransporter(user, pass)
+
+  const mailOptions = {
+    from: `"Central Perk Cafe" <${user}>`,
+    to: toEmail,
+    subject: 'A device failed to verify on your Central Perk Cafe account',
+    text: `Hello,\n\nA device that knew your password tried to sign into your Central Perk Cafe account, but entered the wrong verification code.\n\nWas this you? Review this sign-in: ${confirmLink}\n\nWarm regards,\nCentral Perk Cafe Team`,
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; background-color: #f5f0e8; border: 1px solid #e4d9c9; border-radius: 12px; padding: 32px; color: #2e241d;">
+        <h2 style="color: #316c52; margin-top: 0; font-size: 24px;">Central Perk Cafe</h2>
+        <p style="font-size: 15px; line-height: 1.5; color: #5a4f47;">A device that knew your password just tried to sign into your account, but entered the wrong verification code.</p>
+        <p style="font-size: 15px; line-height: 1.5; color: #2e241d; font-weight: 700;">Was this you?</p>
+        ${renderConfirmButton(confirmLink)}
+        <p style="font-size: 13px; color: #8a7e75; margin-top: 24px; border-top: 1px solid #e4d9c9; padding-top: 16px;">
+          Review this sign-in and tell us Yes or No. If it wasn't you, we'll take you straight to setting a new password.
+        </p>
+      </div>
+    `,
+  }
+
+  await transporter.sendMail(mailOptions)
+  await logSentEmail(mailboxName)
+
+  return { success: true, mailboxUsed: mailboxName }
+}
+
+/**
+ * Sent once a new device successfully passes verification and gets
+ * marked trusted -- the standard "new sign-in" alert.
+ */
+export async function sendNewDeviceLoginEmail(toEmail, confirmLink) {
+  const { mailboxName, user, pass } = await selectActiveMailbox()
+
+  if (!user || !pass) {
+    throw new Error(
+      `Mailbox credentials for ${mailboxName} are missing. Please configure MAILBOX_A_EMAIL and MAILBOX_A_APP_PASSWORD in .env.local`
+    )
+  }
+
+  const transporter = createTransporter(user, pass)
+
+  const mailOptions = {
+    from: `"Central Perk Cafe" <${user}>`,
+    to: toEmail,
+    subject: 'New device signed into your Central Perk Cafe account',
+    text: `Hello,\n\nA new device just signed into your Central Perk Cafe account.\n\nWas this you? Review this sign-in: ${confirmLink}\n\nWarm regards,\nCentral Perk Cafe Team`,
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; background-color: #f5f0e8; border: 1px solid #e4d9c9; border-radius: 12px; padding: 32px; color: #2e241d;">
+        <h2 style="color: #316c52; margin-top: 0; font-size: 24px;">Central Perk Cafe</h2>
+        <p style="font-size: 15px; line-height: 1.5; color: #5a4f47;">A new device just signed into your account.</p>
+        <p style="font-size: 15px; line-height: 1.5; color: #2e241d; font-weight: 700;">Was this you?</p>
+        ${renderConfirmButton(confirmLink)}
+        <p style="font-size: 13px; color: #8a7e75; margin-top: 24px; border-top: 1px solid #e4d9c9; padding-top: 16px;">
+          Review this sign-in and tell us Yes or No. If it wasn't you, we'll take you straight to setting a new password.
+        </p>
+      </div>
+    `,
+  }
+
+  await transporter.sendMail(mailOptions)
+  await logSentEmail(mailboxName)
+
+  return { success: true, mailboxUsed: mailboxName }
+}

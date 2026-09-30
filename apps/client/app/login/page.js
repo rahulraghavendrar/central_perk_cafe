@@ -1,31 +1,121 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import styles from './login.module.css'
 
-export default function LoginPage() {
-  const router = useRouter()
+// Best-effort, display-only decode of the email inside a signed reset
+// token. Never trusted for anything security-relevant -- reset-password
+// re-verifies the token's signature server-side regardless. Browser-safe
+// base64url decode (no Buffer, which isn't available client-side).
+function decodeTokenEmailForDisplay(token) {
+  try {
+    const [encodedPayload] = token.split('.')
+    const base64 = encodedPayload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4)
+    const json = decodeURIComponent(escape(atob(padded)))
+    const payload = JSON.parse(json)
+    return payload.email || ''
+  } catch {
+    return ''
+  }
+}
 
-  // Views: 'LOGIN' | 'RESET_REQUEST' | 'RESET_OTP' | 'RESET_PASSWORD'
-  const [currentView, setCurrentView] = useState('LOGIN')
+// Landing here from a device-confirm "No, secure my account" click --
+// the URL carries a ready-to-use reset token, so we skip straight to
+// RESET_PASSWORD without going through forgot-password's cooldown check
+// at all (this is a different entry point entirely). Computed directly
+// from searchParams (a pure read, safe to call during render) rather
+// than via a mount effect, so there's no extra setState-after-mount
+// render pass.
+function getSecureFlowInit(searchParams) {
+  const tokenFromUrl = searchParams.get('resetToken')
+  const isSecureFlow = searchParams.get('secure') === '1'
+
+  if (tokenFromUrl && isSecureFlow) {
+    return {
+      view: 'RESET_PASSWORD',
+      resetToken: tokenFromUrl,
+      resetEmail: decodeTokenEmailForDisplay(tokenFromUrl),
+      securityNotice: true,
+    }
+  }
+
+  return { view: 'LOGIN', resetToken: '', resetEmail: '', securityNotice: false }
+}
+
+function LoginPageContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const secureFlowInit = getSecureFlowInit(searchParams)
+
+  // Views: 'LOGIN' | 'DEVICE_VERIFY' | 'RESET_REQUEST' | 'RESET_OTP' | 'RESET_PASSWORD'
+  const [currentView, setCurrentView] = useState(secureFlowInit.view)
 
   // Login form state
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [loginErrors, setLoginErrors] = useState({})
 
+  // New-device verification state (separate token from the password-reset
+  // flow -- this one carries the already-authenticated pending session,
+  // see lib/authTokens.js createPendingLoginToken).
+  const [verifyToken, setVerifyToken] = useState('')
+
   // Reset flow state
-  const [resetEmail, setResetEmail] = useState('')
+  const [resetEmail, setResetEmail] = useState(secureFlowInit.resetEmail)
   const [otpCode, setOtpCode] = useState('')
   const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirmPassword: '' })
-  const [resetToken, setResetToken] = useState('')
+  const [resetToken, setResetToken] = useState(secureFlowInit.resetToken)
+
+  // Set when we land on RESET_PASSWORD via a "No, secure my account"
+  // click from a device alert email, rather than the normal
+  // forgot-password flow -- shown as an extra banner explaining why.
+  const [securityNotice, setSecurityNotice] = useState(secureFlowInit.securityNotice)
 
   // UI state
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [successBanner, setSuccessBanner] = useState('')
+
+  // Password-reset cooldown state: set when the server says "try again
+  // later" (24h after a real password change). cooldownUntil is a Date
+  // or null; nowTick just forces a re-render every second so the
+  // countdown display stays live. Starts at 0 rather than Date.now() --
+  // it's only ever read while cooldownUntil is set, and cooldownUntil is
+  // never set without also setting nowTick to a real timestamp right
+  // alongside it (see handleRequestOtpSubmit and the ticking effect
+  // below), so 0 as a placeholder has no visible effect.
+  const [cooldownUntil, setCooldownUntil] = useState(null)
+  const [nowTick, setNowTick] = useState(0)
+
+  useEffect(() => {
+    if (!cooldownUntil) return undefined
+
+    const interval = setInterval(() => {
+      if (Date.now() >= cooldownUntil.getTime()) {
+        setCooldownUntil(null)
+        clearInterval(interval)
+        return
+      }
+      setNowTick(Date.now())
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [cooldownUntil])
+
+  const cooldownRemainingMs = cooldownUntil
+    ? Math.max(0, cooldownUntil.getTime() - nowTick)
+    : 0
+
+  function formatCooldown(ms) {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000))
+    const hours = Math.floor(totalSeconds / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    const seconds = totalSeconds % 60
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  }
 
   // ---------------------------------------------------------------------------
   // View Switchers & Helpers
@@ -37,6 +127,8 @@ export default function LoginPage() {
     setOtpCode('')
     setPasswordForm({ newPassword: '', confirmPassword: '' })
     setResetToken('')
+    setVerifyToken('')
+    setSecurityNotice(false)
   }
 
   function startForgotPassword() {
@@ -72,28 +164,91 @@ export default function LoginPage() {
 
     try {
       const email = loginForm.email.trim().toLowerCase()
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password: loginForm.password,
+
+      // Login goes through our own /api/auth/login route rather than
+      // calling supabase.auth.signInWithPassword() directly, so the
+      // server can check the device cookie and gate the session behind
+      // a 6-digit code for a device it doesn't recognize yet.
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: loginForm.password }),
       })
 
-      if (error) {
-        const msg = error.message.toLowerCase()
-        if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
-          setErrorMessage('Wrong password or invalid credentials.')
-        } else if (msg.includes('email not confirmed')) {
-          setErrorMessage('Please confirm your email address before logging in.')
-        } else {
-          setErrorMessage(error.message || 'Failed to log in. Please try again.')
-        }
+      const data = await res.json()
+
+      if (!res.ok) {
+        setErrorMessage(data.error || 'Failed to log in. Please try again.')
         return
       }
 
-      if (data?.session) {
+      if (data.status === 'device_verification_required') {
+        setVerifyToken(data.verifyToken)
+        setOtpCode('')
+        setCurrentView('DEVICE_VERIFY')
+        return
+      }
+
+      if (data.status === 'ok' && data.session) {
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        })
+
+        if (setSessionError) {
+          setErrorMessage(setSessionError.message || 'Logged in, but could not start your session. Please try again.')
+          return
+        }
+
         router.push('/home')
       }
     } catch (err) {
       setErrorMessage(err.message || 'An unexpected error occurred while logging in.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Screen 0b: New Device Verification Handler
+  // ---------------------------------------------------------------------------
+  async function handleVerifyDeviceSubmit(e) {
+    e.preventDefault()
+    setErrorMessage('')
+
+    const code = otpCode.trim()
+    if (!code || code.length !== 6) {
+      setErrorMessage('Please enter the 6-digit code sent to your email.')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/auth/verify-device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verifyToken, code }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setErrorMessage(data.error || 'Invalid or expired code.')
+        return
+      }
+
+      const { error: setSessionError } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      })
+
+      if (setSessionError) {
+        setErrorMessage(setSessionError.message || 'Verified, but could not start your session. Please try again.')
+        return
+      }
+
+      router.push('/home')
+    } catch (err) {
+      setErrorMessage('Network error verifying this device. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -122,10 +277,15 @@ export default function LoginPage() {
 
       const data = await res.json()
       if (!res.ok) {
+        if (data.code === 'cooldown_active' && data.retryAt) {
+          setCooldownUntil(new Date(data.retryAt))
+          setNowTick(Date.now())
+        }
         setErrorMessage(data.error || 'Could not send verification code.')
         return
       }
 
+      setCooldownUntil(null)
       setCurrentView('RESET_OTP')
     } catch (err) {
       setErrorMessage('Network error. Failed to dispatch reset code.')
@@ -305,6 +465,70 @@ export default function LoginPage() {
         )}
 
         {/* ---------------------------------------------------------------- */}
+        {/* VIEW 0b: NEW DEVICE VERIFICATION (2FA)                           */}
+        {/* ---------------------------------------------------------------- */}
+        {currentView === 'DEVICE_VERIFY' && (
+          <>
+            <h1>Verify This Device</h1>
+            <p className={styles.intro}>
+              We don&apos;t recognize this device yet. We sent a 6-digit code to your email — enter it below to finish logging in.
+            </p>
+
+            {errorMessage && <div className={styles.formError}>{errorMessage}</div>}
+
+            <form onSubmit={handleVerifyDeviceSubmit} className={styles.form} noValidate>
+              <div className={styles.field}>
+                <label htmlFor="device-otp-input">6-Digit Code</label>
+                <input
+                  id="device-otp-input"
+                  type="text"
+                  maxLength={6}
+                  inputMode="numeric"
+                  placeholder="123456"
+                  className={styles.otpInput}
+                  value={otpCode}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '')
+                    setOtpCode(val)
+                    setErrorMessage('')
+                  }}
+                  autoFocus
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || otpCode.length !== 6}
+                className={styles.submitButton}
+              >
+                {isLoading ? 'Verifying...' : 'Verify & Log In'}
+              </button>
+
+              <div className={styles.secondaryActions}>
+                <button
+                  type="button"
+                  onClick={handleLoginSubmit}
+                  disabled={isLoading}
+                  className={styles.textLink}
+                >
+                  Resend code
+                </button>
+              </div>
+            </form>
+
+            <div className={styles.backRow}>
+              <button
+                type="button"
+                onClick={() => goToLogin()}
+                className={styles.textLink}
+              >
+                ← Cancel and Back to Log In
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ---------------------------------------------------------------- */}
         {/* VIEW 1: FORGOT PASSWORD - REQUEST RESET                          */}
         {/* ---------------------------------------------------------------- */}
         {currentView === 'RESET_REQUEST' && (
@@ -315,6 +539,13 @@ export default function LoginPage() {
             </p>
 
             {errorMessage && <div className={styles.formError}>{errorMessage}</div>}
+
+            {cooldownUntil && cooldownRemainingMs > 0 && (
+              <div className={styles.formError}>
+                You recently changed your password. You can request a new reset code in{' '}
+                <strong>{formatCooldown(cooldownRemainingMs)}</strong>.
+              </div>
+            )}
 
             <form onSubmit={handleRequestOtpSubmit} className={styles.form} noValidate>
               <div className={styles.field}>
@@ -333,10 +564,14 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || (cooldownUntil && cooldownRemainingMs > 0)}
                 className={styles.submitButton}
               >
-                {isLoading ? 'Sending Code...' : 'Send Verification Code'}
+                {isLoading
+                  ? 'Sending Code...'
+                  : cooldownUntil && cooldownRemainingMs > 0
+                    ? `Try again in ${formatCooldown(cooldownRemainingMs)}`
+                    : 'Send Verification Code'}
               </button>
             </form>
 
@@ -429,6 +664,13 @@ export default function LoginPage() {
         {currentView === 'RESET_PASSWORD' && (
           <>
             <h1>Create New Password</h1>
+
+            {securityNotice && (
+              <div className={styles.bannerWarning}>
+                For your security, please set a new password now — you told us a recent sign-in to this account wasn&apos;t you.
+              </div>
+            )}
+
             <p className={styles.intro}>
               Enter a secure new password for <strong>{resetEmail}</strong>.
             </p>
@@ -487,5 +729,13 @@ export default function LoginPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   )
 }
