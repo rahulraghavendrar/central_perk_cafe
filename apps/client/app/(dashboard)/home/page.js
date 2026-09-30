@@ -1,46 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { supabase } from '@/lib/supabaseClient'
+import { useAuthSession } from '@/lib/useAuthSession'
 import styles from './home.module.css'
 
 export default function HomePage() {
-  const router = useRouter()
-  const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function loadUser() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/login')
-        return
-      }
-
-      setUser(session.user)
-
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .maybeSingle()
-
-      if (prof) {
-        setProfile(prof)
-      }
-      setLoading(false)
-    }
-
-    loadUser()
-  }, [router])
-
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
+  const { user, profile, loading, logout } = useAuthSession()
 
   if (loading) {
     return (
@@ -72,8 +36,13 @@ export default function HomePage() {
           </div>
         )}
 
+        <div className={styles.comingSoon}>
+          <span className={styles.comingSoonDot} />
+          The menu, search, and filters land here next.
+        </div>
+
         <div className={styles.actions}>
-          <button onClick={handleLogout} className={styles.logoutButton}>
+          <button onClick={logout} className={styles.logoutButton}>
             Log Out
           </button>
         </div>
