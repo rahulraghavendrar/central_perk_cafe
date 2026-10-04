@@ -1,48 +1,101 @@
+/* ================================
+   CART PAGE
+================================ */
+
 .page {
   min-height: 100vh;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 32px 16px;
+  padding: 36px 24px 64px;
   background: #f5f0e8;
 }
 
 .card {
-  width: min(100%, 560px);
-  margin-top: 24px;
-  padding: 40px;
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 38px 42px;
   border: 1px solid #e4d9c9;
-  border-radius: 12px;
+  border-radius: 20px;
   background: #fffdf9;
-  box-shadow: 0 16px 40px rgb(74 54 35 / 10%);
+  box-shadow: 0 14px 36px rgb(74 54 35 / 8%);
 }
 
+/* ================================
+   HEADER
+================================ */
+
 .eyebrow {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: #8a5a33;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .card h1 {
+  margin: 0;
   color: #2e241d;
-  font-size: 2rem;
-  line-height: 1.2;
+  font-size: clamp(2.1rem, 4vw, 3rem);
+  line-height: 1.1;
+  font-weight: 650;
 }
 
-.intro {
-  margin-top: 10px;
+.subtitle {
+  margin: 10px 0 28px;
   color: #6d625a;
+  font-size: 0.95rem;
   line-height: 1.5;
 }
 
-.placeholder {
-  margin-top: 28px;
-  padding: 36px 20px;
+.intro {
+  margin: 10px 0 28px;
+  color: #6d625a;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* ================================
+   EMPTY CART
+================================ */
+
+.empty {
+  min-height: 240px;
+  margin-top: 22px;
+  padding: 40px 20px;
   border: 1px dashed #d9c9b3;
-  border-radius: 10px;
+  border-radius: 16px;
+  background: #f8f4ed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.emptyIcon {
+  margin-bottom: 12px;
+  font-size: 2.5rem;
+}
+
+.empty h2 {
+  margin: 0 0 6px;
+  color: #2e241d;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+.empty p {
+  margin: 0;
+  color: #6d625a;
+  font-size: 0.9rem;
+}
+
+/* Existing placeholder support */
+
+.placeholder {
+  margin-top: 24px;
+  padding: 34px 20px;
+  border: 1px dashed #d9c9b3;
+  border-radius: 16px;
   background: #f8f4ed;
   display: flex;
   flex-direction: column;
@@ -54,15 +107,318 @@
 
 .placeholderIcon {
   color: #316c52;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .placeholder p {
   color: #2e241d;
-  font-weight: 700;
-  font-size: 1rem;
+  font-weight: 650;
+  font-size: 0.95rem;
 }
 
 .placeholder span {
+  font-size: 0.82rem;
+}
+
+/* ================================
+   CART ITEMS
+================================ */
+
+.cartList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cartItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 20px;
+  border: 1px solid #e6dccf;
+  border-radius: 15px;
+  background: #fffefa;
+  box-shadow: 0 5px 16px rgb(74 54 35 / 5%);
+  transition: box-shadow 0.2s ease;
+}
+
+.cartItem:hover {
+  box-shadow: 0 8px 20px rgb(74 54 35 / 8%);
+}
+
+/* ================================
+   ITEM INFORMATION
+================================ */
+
+.itemInfo {
+  min-width: 0;
+}
+
+.itemInfo h2 {
+  margin: 0 0 5px;
+  color: #30251e;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.itemInfo p {
+  margin: 3px 0;
+  color: #7b7067;
+  font-size: 0.82rem;
+}
+
+.itemInfo p:first-of-type {
+  color: #316c52;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ================================
+   QUANTITY CONTROLS
+================================ */
+
+.quantityControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px;
+  border: 1px solid #dfd1bf;
+  border-radius: 10px;
+  background: #f8f4ed;
+}
+
+.quantityControls button {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 7px;
+  background: #316c52;
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.quantityControls button:hover {
+  opacity: 0.86;
+}
+
+.quantityControls span {
+  min-width: 20px;
+  text-align: center;
+  color: #2e241d;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ================================
+   ITEM TOTAL
+================================ */
+
+.itemTotal {
+  min-width: 78px;
+  color: #316c52;
+  font-size: 0.98rem;
+  font-weight: 650;
+  text-align: right;
+}
+
+/* ================================
+   REMOVE BUTTON
+================================ */
+
+.removeButton {
+  padding: 7px 12px;
+  border: 1px solid #dfc9bd;
+  border-radius: 8px;
+  background: transparent;
+  color: #a6533f;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.removeButton:hover {
+  background: #a6533f;
+  color: #fff;
+}
+
+/* ================================
+   ORDER SUMMARY
+================================ */
+
+.summary {
+  width: min(420px, 100%);
+  margin: 24px 0 0 auto;
+  padding: 20px 22px;
+  border: 1px solid #e4d9c9;
+  border-radius: 16px;
+  background: #f8f4ed;
+}
+
+.summary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  color: #6d625a;
+  font-size: 0.9rem;
+}
+
+.summary > div:last-of-type {
+  margin-top: 7px;
+  padding-top: 13px;
+  border-top: 1px solid #dfd1bf;
+  color: #2e241d;
+  font-size: 1rem;
+}
+
+.summary strong {
+  color: #316c52;
+  font-weight: 650;
+}
+
+/* ================================
+   CONFIRM ORDER
+================================ */
+
+.confirmButton {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 9px;
+  background: #316c52;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.confirmButton:hover {
+  opacity: 0.88;
+}
+
+/* ================================
+   RESPONSIVE
+================================ */
+
+@media (max-width: 850px) {
+  .card {
+    padding: 32px 24px;
+  }
+
+  .cartItem {
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+  }
+
+  .itemTotal {
+    text-align: left;
+  }
+
+  .removeButton {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .page {
+    padding: 24px 12px 48px;
+  }
+
+  .card {
+    padding: 28px 18px;
+    border-radius: 17px;
+  }
+
+  .card h1 {
+    font-size: 2.25rem;
+  }
+
+  .cartItem {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .quantityControls {
+    width: fit-content;
+  }
+
+  .itemTotal {
+    text-align: left;
+  }
+
+  .summary {
+    width: 100%;
+  }
+}
+
+.parcelOption {
+  margin: 12px 0;
+  padding: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #dfd1bf;
+  border-bottom: 1px solid #dfd1bf;
+  cursor: pointer;
+}
+
+.parcelOption > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.parcelOption strong {
+  color: #2e241d;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.parcelOption small {
+  color: #8a7d73;
+  font-size: 0.75rem;
+}
+
+.parcelOption input {
+  width: 18px;
+  height: 18px;
+  accent-color: #316c52;
+  cursor: pointer;
+}
+
+.parcelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  color: #6d625a;
   font-size: 0.85rem;
+}
+
+.parcelRow strong {
+  color: #316c52;
+  font-weight: 600;
+}
+
+.totalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid #dfd1bf;
+  color: #2e241d;
+  font-size: 1rem;
+}
+
+.totalRow strong {
+  color: #316c52;
+  font-weight: 700;
 }

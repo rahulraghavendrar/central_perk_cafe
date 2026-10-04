@@ -1,7 +1,10 @@
 .navbar {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 20;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -87,4 +90,34 @@
   .tab {
     padding: 10px;
   }
+}
+
+.cartIconWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cartBadge {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #316c52;
+  color: #ffffff;
+
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
 }

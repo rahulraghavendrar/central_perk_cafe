@@ -47,3 +47,7 @@ a {
     color-scheme: dark;
   }
 }
+
+.dashboard-content {
+  padding-top: 60px;
+}

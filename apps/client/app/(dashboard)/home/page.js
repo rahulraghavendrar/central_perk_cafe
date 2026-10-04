@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuthSession } from '@/lib/useAuthSession'
 import { supabase } from '@/lib/supabaseClient'
+import { useCart } from '@/app/components/CartContext'
 import MenuCategory from '@/app/components/MenuCategory'
 import styles from './home.module.css'
 
@@ -14,6 +15,23 @@ const CATEGORIES_ORDER = [
   'Fries',
   'Desserts'
 ]
+
+function normalizeExtras(extras) {
+  if (Array.isArray(extras)) {
+    return extras
+  }
+
+  if (typeof extras === 'string' && extras.trim()) {
+    try {
+      const parsed = JSON.parse(extras)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+
+  return []
+}
 
 function getCategoryKey(dish) {
   const cat = (dish.sub_category || dish.category || '').toLowerCase()
@@ -51,6 +69,9 @@ function getCategoryKey(dish) {
 
 export default function HomePage() {
   const { user, profile, loading: authLoading } = useAuthSession()
+  const { setCartItem, removeFromCart } = useCart()
+  const { cartItems } = useCart()
+  const { updateCartItem} = useCart()
 
   // Menu data state
   const [menuItems, setMenuItems] = useState([])
@@ -65,6 +86,18 @@ export default function HomePage() {
   const [quantities, setQuantities] = useState({})
   const [selectedToppings, setSelectedToppings] = useState({})
   const [selectedExtras, setSelectedExtras] = useState({})
+
+  // Keep Home quantities synchronized with the shared cart
+  useEffect(() => {
+    const syncedQuantities = {}
+
+    cartItems.forEach((item) => {
+      syncedQuantities[item.id] = item.quantity
+    })
+
+    setQuantities(syncedQuantities)
+  }, [cartItems])
+
 
   // Fetch Menu from Supabase
   const fetchMenu = useCallback(async () => {
@@ -127,10 +160,54 @@ export default function HomePage() {
 
   // Interaction handlers
   const handleQuantityChange = (dishId, newQty) => {
+    const quantity = Math.max(0, newQty)
+
     setQuantities(prev => ({
       ...prev,
-      [dishId]: Math.max(0, newQty)
+      [dishId]: quantity
     }))
+
+    const dish = menuItems.find(item => item.id === dishId)
+
+    if (!dish) return
+
+    const extrasList = normalizeExtras(dish.extras)
+
+    const selectedExtraNames = selectedExtras[dishId] || []
+
+    const cartExtras = selectedExtraNames
+      .map(name => {
+        const extra = extrasList.find(item => {
+          if (typeof item === 'string') {
+            return item === name
+          }
+
+          return (
+            item &&
+            typeof item === 'object' &&
+            (item.name || item.title) === name
+          )
+        })
+
+        if (!extra || typeof extra !== 'object') {
+          return null
+        }
+
+        return {
+          name: extra.name || extra.title,
+          price: Number(extra.price || 0)
+        }
+      })
+      .filter(Boolean)
+
+    updateCartItem({
+      id: dish.id,
+      name: dish.dish_name || dish.name,
+      price: Number(dish.price || 0),
+      quantity,
+      toppings: selectedToppings[dishId] || [],
+      extras: cartExtras
+    })
   }
 
   const handleToppingToggle = (dishId, toppingName) => {
@@ -144,12 +221,60 @@ export default function HomePage() {
   }
 
   const handleExtraToggle = (dishId, extraName) => {
-    setSelectedExtras(prev => {
-      const current = prev[dishId] || []
-      const updated = current.includes(extraName)
-        ? current.filter(e => e !== extraName)
-        : [...current, extraName]
-      return { ...prev, [dishId]: updated }
+    const currentExtras = selectedExtras[dishId] || []
+
+    const updatedExtras = currentExtras.includes(extraName)
+      ? currentExtras.filter(name => name !== extraName)
+      : [...currentExtras, extraName]
+
+    setSelectedExtras(prev => ({
+      ...prev,
+      [dishId]: updatedExtras
+    }))
+
+    const dish = menuItems.find(item => item.id === dishId)
+
+    if (!dish) return
+
+    const quantity = quantities[dishId] || 0
+
+    // Don't add an item to the cart just by selecting an extra
+    if (quantity <= 0) return
+
+    const extrasList = normalizeExtras(dish.extras)
+
+    const cartExtras = updatedExtras
+      .map(name => {
+        const extra = extrasList.find(item => {
+          if (typeof item === 'string') {
+            return item === name
+          }
+
+          return (
+            item &&
+            typeof item === 'object' &&
+            (item.name || item.title) === name
+          )
+        })
+
+        if (!extra || typeof extra !== 'object') {
+          return null
+        }
+
+        return {
+          name: extra.name || extra.title,
+          price: Number(extra.price || 0)
+        }
+      })
+      .filter(Boolean)
+
+    updateCartItem({
+      id: dish.id,
+      name: dish.dish_name || dish.name,
+      price: Number(dish.price || 0),
+      quantity,
+      toppings: selectedToppings[dishId] || [],
+      extras: cartExtras
     })
   }
 
