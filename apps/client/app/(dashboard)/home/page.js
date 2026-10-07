@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuthSession } from '@/lib/useAuthSession'
 import { supabase } from '@/lib/supabaseClient'
 import { useCart } from '@/app/components/CartContext'
@@ -82,20 +82,21 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState('all') // 'all' | 'veg' | 'non-veg'
 
-  // Interaction states (quantity, toppings, extras)
-  const [quantities, setQuantities] = useState({})
+  // Interaction states (toppings, extras -- quantity is derived below)
   const [selectedToppings, setSelectedToppings] = useState({})
   const [selectedExtras, setSelectedExtras] = useState({})
 
-  // Keep Home quantities synchronized with the shared cart
-  useEffect(() => {
-    const syncedQuantities = {}
+  // Quantities mirror the shared cart -- derived during render instead of an
+  // effect + setState, so Home always reflects cartItems with no extra state
+  // to fall out of sync (e.g. after removing an item from the Cart tab).
+  const quantities = useMemo(() => {
+    const synced = {}
 
     cartItems.forEach((item) => {
-      syncedQuantities[item.id] = item.quantity
+      synced[item.id] = item.quantity
     })
 
-    setQuantities(syncedQuantities)
+    return synced
   }, [cartItems])
 
 
@@ -161,11 +162,6 @@ export default function HomePage() {
   // Interaction handlers
   const handleQuantityChange = (dishId, newQty) => {
     const quantity = Math.max(0, newQty)
-
-    setQuantities(prev => ({
-      ...prev,
-      [dishId]: quantity
-    }))
 
     const dish = menuItems.find(item => item.id === dishId)
 
