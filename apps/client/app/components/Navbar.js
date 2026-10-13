@@ -72,11 +72,6 @@ export default function Navbar() {
 
   return (
     <nav className={styles.navbar}>
-      <Link href="/home" className={styles.brand}>
-        <span className={styles.brandMark}>CP</span>
-        <span className={styles.brandName}>Central Perk Cafe</span>
-      </Link>
-
       <div className={styles.tabs}>
         {TABS.map((tab) => {
           const isActive =

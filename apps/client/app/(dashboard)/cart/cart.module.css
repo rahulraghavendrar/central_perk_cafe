@@ -58,12 +58,12 @@
 ================================ */
 
 .empty {
-  min-height: 240px;
+  min-height: 280px;
   margin-top: 22px;
-  padding: 40px 20px;
-  border: 1px dashed #d9c9b3;
+  padding: 48px 20px;
+  border: 1px solid #e6dccf;
   border-radius: 16px;
-  background: #f8f4ed;
+  background: #fffefa;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -72,21 +72,64 @@
 }
 
 .emptyIcon {
-  margin-bottom: 12px;
-  font-size: 2.5rem;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  color: #316c52;
 }
 
 .empty h2 {
   margin: 0 0 6px;
   color: #2e241d;
-  font-size: 1.15rem;
-  font-weight: 650;
+  font-size: 1.2rem;
+  font-weight: 700;
 }
 
 .empty p {
   margin: 0;
   color: #6d625a;
   font-size: 0.9rem;
+}
+
+.browseButton {
+  display: inline-block;
+  margin-top: 22px;
+  padding: 11px 26px;
+  border-radius: 9px;
+  background: #316c52;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.browseButton:hover {
+  opacity: 0.88;
+}
+
+.orderMessageSuccess {
+  margin: 12px 0 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #eaf4ee;
+  border: 1px solid #bfe0cc;
+  color: #1e4d3b;
+  font-weight: 650;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.orderMessageNotice {
+  margin: 12px 0 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #faf1e9;
+  border: 1px solid #e6cfb3;
+  color: #8a5a33;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 /* Existing placeholder support */
@@ -421,4 +464,184 @@
 .totalRow strong {
   color: #316c52;
   font-weight: 700;
+}
+/* ================================
+   READY TIME
+================================ */
+
+.readySection {
+  margin: 14px 0;
+  padding: 14px 0;
+  border-top: 1px solid #dfd1bf;
+  border-bottom: 1px solid #dfd1bf;
+}
+
+.readyLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.readyLabel strong {
+  color: #2e241d;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.readyLabel small {
+  color: #8a7d73;
+  font-size: 0.75rem;
+}
+
+.readyToggle {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid #dfd1bf;
+  border-radius: 10px;
+  background: #f8f4ed;
+}
+
+.readyToggleButton {
+  flex: 1;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #6d625a;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.readyToggleButton:hover {
+  color: #316c52;
+}
+
+.readyToggleButtonActive {
+  background: #316c52;
+  color: #fff;
+}
+
+.readyToggleButtonActive:hover {
+  color: #fff;
+}
+
+.readyPanel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 280ms ease, opacity 220ms ease;
+}
+
+.readyPanelOpen {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 12px;
+}
+
+.readyPanelInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.timeInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dfd1bf;
+  border-radius: 9px;
+  background: #fffefa;
+  color: #2e241d;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.timeInput:focus {
+  outline: 2px solid #316c52;
+  outline-offset: 1px;
+}
+
+.readyHint {
+  display: block;
+  margin-top: 6px;
+  color: #8a7d73;
+  font-size: 0.75rem;
+}
+
+/* ================================
+   ORDER CONFIRMATION
+================================ */
+
+.confirmation {
+  min-height: 280px;
+  margin-top: 22px;
+  padding: 40px 24px 36px;
+  border: 1px solid #bfe0cc;
+  border-radius: 16px;
+  background: #f5faf6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.confirmationEyebrow {
+  margin: 0 0 6px;
+  color: #316c52;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.orderNumber {
+  margin: 4px 0 2px;
+  color: #1e4d3b;
+  font-size: clamp(2.6rem, 7vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.confirmationReady {
+  margin: 8px 0 0;
+  color: #4a6155;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.confirmationHint {
+  max-width: 320px;
+  margin: 18px 0 4px;
+  color: #4a6155;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.confirmationActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.secondaryButton {
+  display: inline-block;
+  padding: 11px 26px;
+  border: 1px solid #bfe0cc;
+  border-radius: 9px;
+  background: transparent;
+  color: #316c52;
+  font-size: 0.88rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.secondaryButton:hover {
+  background: #316c52;
+  color: #fff;
 }

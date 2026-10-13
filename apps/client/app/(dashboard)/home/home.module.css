@@ -6,9 +6,14 @@
 }
 
 .banner {
-  background: linear-gradient(135deg, #194031 0%, #245844 100%);
+  position: relative;
+  background-image:
+    linear-gradient(135deg, rgba(17, 38, 30, 0.88) 0%, rgba(30, 77, 59, 0.82) 100%),
+    url('/images/cafe-hero.jpg');
+  background-size: cover;
+  background-position: center 65%;
   color: #ffffff;
-  padding: 40px 24px;
+  padding: 48px 24px 56px;
   border-bottom: 4px solid #d4af37;
   box-shadow: 0 10px 30px rgba(25, 64, 49, 0.15);
 }
@@ -22,39 +27,14 @@
   text-align: center;
 }
 
-.logoBadge {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
-  padding: 8px 18px;
-  border-radius: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  margin-bottom: 16px;
-}
-
-.logoIcon {
-  width: 24px;
-  height: 24px;
-  color: #e6c687;
-}
-
-.logoText {
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: #f3e5ca;
-}
-
 .bannerTitle {
-  font-size: 2.5rem;
+  font-size: 2.75rem;
   font-weight: 800;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   color: #ffffff;
-  letter-spacing: -0.02em;
-  font-family: Georgia, serif;
+  letter-spacing: -0.01em;
+  font-family: var(--font-display), Georgia, serif;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
 }
 
 .bannerSubtitle {
@@ -67,15 +47,15 @@
 
 .controlsContainer {
   max-width: 1200px;
-  margin: -24px auto 32px auto;
+  margin: 28px auto 32px auto;
   padding: 0 24px;
 }
 
 .controlsCard {
   background: #ffffff;
-  padding: 20px 24px;
-  border-radius: 16px;
-  box-shadow: 0 8px 30px rgba(42, 34, 27, 0.08);
+  padding: 24px 28px;
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(42, 34, 27, 0.14);
   border: 1px solid #eae1d5;
   display: flex;
   flex-direction: column;
