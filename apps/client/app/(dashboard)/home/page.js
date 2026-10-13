@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuthSession } from '@/lib/useAuthSession'
 import { supabase } from '@/lib/supabaseClient'
 import { useCart } from '@/app/components/CartContext'
+import { buildCartKey } from '@/lib/cartKey'
 import MenuCategory from '@/app/components/MenuCategory'
 import styles from './home.module.css'
 
@@ -86,6 +87,11 @@ export default function HomePage() {
   const [selectedToppings, setSelectedToppings] = useState({})
   const [selectedExtras, setSelectedExtras] = useState({})
 
+  // Once a dish's quantity has been touched for the first time, its
+  // toppings/extras panel stays revealed (with a CSS entrance animation)
+  // instead of being shown for every dish up front.
+  const [revealedDishes, setRevealedDishes] = useState({})
+
   // Quantities mirror the shared cart -- derived during render instead of an
   // effect + setState, so Home always reflects cartItems with no extra state
   // to fall out of sync (e.g. after removing an item from the Cart tab).
@@ -167,9 +173,14 @@ export default function HomePage() {
 
     if (!dish) return
 
+    // First time this dish's quantity is touched, reveal its
+    // toppings/extras panel (stays revealed from then on).
+    setRevealedDishes(prev => (prev[dishId] ? prev : { ...prev, [dishId]: true }))
+
     const extrasList = normalizeExtras(dish.extras)
 
     const selectedExtraNames = selectedExtras[dishId] || []
+    const selectedToppingNames = selectedToppings[dishId] || []
 
     const cartExtras = selectedExtraNames
       .map(name => {
@@ -196,12 +207,19 @@ export default function HomePage() {
       })
       .filter(Boolean)
 
+    // Key the cart line on the dish *and* its exact toppings/extras, so
+    // ordering the same dish twice with different extras (e.g. one
+    // waffle with Ice Cream, one without) creates two separate cart
+    // lines instead of one line whose extras get silently overwritten.
+    const cartKey = buildCartKey(dishId, selectedToppingNames, selectedExtraNames)
+
     updateCartItem({
-      id: dish.id,
+      id: cartKey,
+      dishId: dish.id,
       name: dish.dish_name || dish.name,
       price: Number(dish.price || 0),
       quantity,
-      toppings: selectedToppings[dishId] || [],
+      toppings: selectedToppingNames,
       extras: cartExtras
     })
   }
@@ -217,60 +235,17 @@ export default function HomePage() {
   }
 
   const handleExtraToggle = (dishId, extraName) => {
-    const currentExtras = selectedExtras[dishId] || []
-
-    const updatedExtras = currentExtras.includes(extraName)
-      ? currentExtras.filter(name => name !== extraName)
-      : [...currentExtras, extraName]
-
-    setSelectedExtras(prev => ({
-      ...prev,
-      [dishId]: updatedExtras
-    }))
-
-    const dish = menuItems.find(item => item.id === dishId)
-
-    if (!dish) return
-
-    const quantity = quantities[dishId] || 0
-
-    // Don't add an item to the cart just by selecting an extra
-    if (quantity <= 0) return
-
-    const extrasList = normalizeExtras(dish.extras)
-
-    const cartExtras = updatedExtras
-      .map(name => {
-        const extra = extrasList.find(item => {
-          if (typeof item === 'string') {
-            return item === name
-          }
-
-          return (
-            item &&
-            typeof item === 'object' &&
-            (item.name || item.title) === name
-          )
-        })
-
-        if (!extra || typeof extra !== 'object') {
-          return null
-        }
-
-        return {
-          name: extra.name || extra.title,
-          price: Number(extra.price || 0)
-        }
-      })
-      .filter(Boolean)
-
-    updateCartItem({
-      id: dish.id,
-      name: dish.dish_name || dish.name,
-      price: Number(dish.price || 0),
-      quantity,
-      toppings: selectedToppings[dishId] || [],
-      extras: cartExtras
+    // Toggling an extra only changes what the *next* "+" click will add
+    // -- it never mutates a cart line that's already been added. That
+    // keeps an existing line (e.g. a waffle already added without Ice
+    // Cream) untouched when you check a different combination before
+    // adding another unit, instead of silently rewriting it.
+    setSelectedExtras(prev => {
+      const current = prev[dishId] || []
+      const updated = current.includes(extraName)
+        ? current.filter(name => name !== extraName)
+        : [...current, extraName]
+      return { ...prev, [dishId]: updated }
     })
   }
 
@@ -325,24 +300,22 @@ export default function HomePage() {
     ...Object.keys(groupedCategories).filter(cat => !CATEGORIES_ORDER.includes(cat) && groupedCategories[cat].length > 0)
   ]
 
-  const userName = profile?.name || user?.email?.split('@')[0] || 'Friend'
+  // Fall back to a cropped version of the email's local part when the
+  // profile has no display name -- e.g. "srivatchan23110183@..." becomes
+  // "srivatchan" instead of showing the raw, roll-number-suffixed id.
+  function nameFromEmail(email) {
+    const localPart = (email || '').split('@')[0] || ''
+    const cropped = localPart.replace(/\d+$/, '')
+    return cropped || localPart || 'Friend'
+  }
+
+  const userName = profile?.name || nameFromEmail(user?.email)
 
   return (
     <div className={styles.page}>
       {/* Central Perk Banner */}
       <header className={styles.banner}>
         <div className={styles.bannerContainer}>
-          <div className={styles.logoBadge}>
-            <svg className={styles.logoIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M17 8h1a4 4 0 0 1 0 8h-1" />
-              <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z" />
-              <line x1="6" y1="2" x2="6" y2="4" />
-              <line x1="10" y1="2" x2="10" y2="4" />
-              <line x1="14" y1="2" x2="14" y2="4" />
-            </svg>
-            <span className={styles.logoText}>Central Perk Cafe</span>
-          </div>
-
           <h1 className={styles.bannerTitle}>Central Perk Menu</h1>
           <p className={styles.bannerSubtitle}>
             Welcome, {userName}! Explore our freshly prepared beverages, egg delicacies, savouries, sandwiches, fries, and desserts.
@@ -481,6 +454,7 @@ export default function HomePage() {
                 onToppingToggle={handleToppingToggle}
                 selectedExtras={selectedExtras}
                 onExtraToggle={handleExtraToggle}
+                revealedDishes={revealedDishes}
               />
             ))}
           </div>

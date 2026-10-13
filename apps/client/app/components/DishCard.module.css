@@ -150,6 +150,30 @@
   letter-spacing: 0.05em;
 }
 
+.optionsHint {
+  font-size: 0.78rem;
+  color: #a39585;
+  font-style: italic;
+  margin: 2px 0 12px 0;
+}
+
+.optionsPanel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 280ms ease, opacity 220ms ease;
+}
+
+.optionsPanelOpen {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.optionsPanelInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
 .optionsContainer {
   display: flex;
   flex-direction: column;

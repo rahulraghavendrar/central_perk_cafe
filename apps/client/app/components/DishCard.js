@@ -10,7 +10,8 @@ export default function DishCard({
   selectedToppings = [],
   onToppingToggle,
   selectedExtras = [],
-  onExtraToggle
+  onExtraToggle,
+  started = false
 }) {
   const [imgError, setImgError] = useState(false)
 
@@ -136,61 +137,76 @@ export default function DishCard({
           <span className={styles.categoryTag}>{subCategory}</span>
         )}
 
-        {/* Free Toppings Section */}
-        {toppingsList.length > 0 && (
-          <div className={styles.optionsContainer}>
-            <div className={styles.sectionTitle}>Free Toppings:</div>
-            <div className={styles.toppingsList}>
-              {toppingsList.map((topping, idx) => {
-                const toppingName = typeof topping === 'string'
-                  ? topping
-                  : (topping && typeof topping === 'object' ? (topping.name || topping.title || String(topping)) : String(topping))
-
-                if (!toppingName) return null
-                const isSelected = selectedToppings.includes(toppingName)
-
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    className={`${styles.toppingPill} ${isSelected ? styles.toppingPillActive : ''}`}
-                    onClick={() => onToppingToggle && onToppingToggle(toppingName)}
-                  >
-                    <span>{toppingName}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+        {/* Toppings/extras stay collapsed until the dish's quantity has
+            been touched at least once, then animate open. */}
+        {(toppingsList.length > 0 || extrasList.length > 0) && !started && (
+          <p className={styles.optionsHint}>
+            Tap &quot;+&quot; below to customize this item.
+          </p>
         )}
 
-        {/* Paid Extras Section */}
-        {extrasList.length > 0 && (
-          <div className={styles.optionsContainer}>
-            <div className={styles.sectionTitle}>Paid Extras:</div>
-            <div className={styles.extrasList}>
-              {extrasList.map((extra, idx) => {
-                const name = typeof extra === 'string'
-                  ? extra
-                  : (extra && typeof extra === 'object' ? (extra.name || extra.title || '') : String(extra))
-                const extraPrice = typeof extra === 'object' && extra !== null && extra.price !== undefined ? extra.price : null
-                if (!name) return null
-                const isSelected = selectedExtras.includes(name)
+        {(toppingsList.length > 0 || extrasList.length > 0) && (
+          <div className={`${styles.optionsPanel} ${started ? styles.optionsPanelOpen : ''}`}>
+            <div className={styles.optionsPanelInner}>
+              {/* Free Toppings Section */}
+              {toppingsList.length > 0 && (
+                <div className={styles.optionsContainer}>
+                  <div className={styles.sectionTitle}>Free Toppings:</div>
+                  <div className={styles.toppingsList}>
+                    {toppingsList.map((topping, idx) => {
+                      const toppingName = typeof topping === 'string'
+                        ? topping
+                        : (topping && typeof topping === 'object' ? (topping.name || topping.title || String(topping)) : String(topping))
 
-                return (
-                  <label key={idx} className={styles.extraCheckbox}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => onExtraToggle && onExtraToggle(name)}
-                    />
-                    <span>{name}</span>
-                    {extraPrice !== null && (
-                      <span className={styles.extraPrice}>+Rs.{extraPrice}</span>
-                    )}
-                  </label>
-                )
-              })}
+                      if (!toppingName) return null
+                      const isSelected = selectedToppings.includes(toppingName)
+
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          className={`${styles.toppingPill} ${isSelected ? styles.toppingPillActive : ''}`}
+                          onClick={() => onToppingToggle && onToppingToggle(toppingName)}
+                        >
+                          <span>{toppingName}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Paid Extras Section */}
+              {extrasList.length > 0 && (
+                <div className={styles.optionsContainer}>
+                  <div className={styles.sectionTitle}>Paid Extras:</div>
+                  <div className={styles.extrasList}>
+                    {extrasList.map((extra, idx) => {
+                      const name = typeof extra === 'string'
+                        ? extra
+                        : (extra && typeof extra === 'object' ? (extra.name || extra.title || '') : String(extra))
+                      const extraPrice = typeof extra === 'object' && extra !== null && extra.price !== undefined ? extra.price : null
+                      if (!name) return null
+                      const isSelected = selectedExtras.includes(name)
+
+                      return (
+                        <label key={idx} className={styles.extraCheckbox}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => onExtraToggle && onExtraToggle(name)}
+                          />
+                          <span>{name}</span>
+                          {extraPrice !== null && (
+                            <span className={styles.extraPrice}>+Rs.{extraPrice}</span>
+                          )}
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         )}

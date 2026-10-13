@@ -1,6 +1,7 @@
 'use client'
 
 import DishCard from './DishCard'
+import { buildCartKey } from '@/lib/cartKey'
 import styles from './MenuCategory.module.css'
 
 export default function MenuCategory({
@@ -11,9 +12,23 @@ export default function MenuCategory({
   selectedToppings,
   onToppingToggle,
   selectedExtras,
-  onExtraToggle
+  onExtraToggle,
+  revealedDishes = {}
 }) {
   if (!dishes || dishes.length === 0) return null
+
+  // The quantity shown on a dish card reflects the cart line matching
+  // its *current* draft toppings/extras selection, not just the dish
+  // id -- so switching extras before adding another unit shows that
+  // combination's own count instead of a shared, misleading total.
+  function quantityFor(dish) {
+    const key = buildCartKey(
+      dish.id,
+      selectedToppings[dish.id] || [],
+      selectedExtras[dish.id] || []
+    )
+    return quantities[key] || 0
+  }
 
   // Special sub-grouping for Desserts if title === 'Desserts'
   const isDesserts = title === 'Desserts'
@@ -64,12 +79,13 @@ export default function MenuCategory({
                     <DishCard
                       key={dish.id || dish.dish_name}
                       dish={dish}
-                      quantity={quantities[dish.id] || 0}
+                      quantity={quantityFor(dish)}
                       onQuantityChange={(q) => onQuantityChange(dish.id, q)}
                       selectedToppings={selectedToppings[dish.id] || []}
                       onToppingToggle={(t) => onToppingToggle(dish.id, t)}
                       selectedExtras={selectedExtras[dish.id] || []}
                       onExtraToggle={(e) => onExtraToggle(dish.id, e)}
+                      started={!!revealedDishes[dish.id]}
                     />
                   ))}
                 </div>
@@ -88,12 +104,13 @@ export default function MenuCategory({
                   <DishCard
                     key={dish.id || dish.dish_name}
                     dish={dish}
-                    quantity={quantities[dish.id] || 0}
+                    quantity={quantityFor(dish)}
                     onQuantityChange={(q) => onQuantityChange(dish.id, q)}
                     selectedToppings={selectedToppings[dish.id] || []}
                     onToppingToggle={(t) => onToppingToggle(dish.id, t)}
                     selectedExtras={selectedExtras[dish.id] || []}
                     onExtraToggle={(e) => onExtraToggle(dish.id, e)}
+                    started={!!revealedDishes[dish.id]}
                   />
                 ))}
               </div>
@@ -106,12 +123,13 @@ export default function MenuCategory({
             <DishCard
               key={dish.id || dish.dish_name}
               dish={dish}
-              quantity={quantities[dish.id] || 0}
+              quantity={quantityFor(dish)}
               onQuantityChange={(q) => onQuantityChange(dish.id, q)}
               selectedToppings={selectedToppings[dish.id] || []}
               onToppingToggle={(t) => onToppingToggle(dish.id, t)}
               selectedExtras={selectedExtras[dish.id] || []}
               onExtraToggle={(e) => onExtraToggle(dish.id, e)}
+              started={!!revealedDishes[dish.id]}
             />
           ))}
         </div>
