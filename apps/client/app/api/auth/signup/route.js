@@ -1,17 +1,9 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendSignupConfirmationEmail } from '@/lib/mailer'
+import { getRollNumber } from '@/lib/rollNumber'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-
-function getRollNumber(email) {
-  const normalizedEmail = email.trim().toLowerCase()
-  const emailParts = normalizedEmail.match(/^([^@\s]+)@(snuchennai\.edu\.in|ssn\.edu\.in)$/)
-  if (!emailParts) return null
-  const requiredDigits = emailParts[2] === 'snuchennai.edu.in' ? 8 : 7
-  const rollNumberMatch = emailParts[1].match(new RegExp(`(\\d{${requiredDigits}})$`))
-  return rollNumberMatch ? rollNumberMatch[1] : null
-}
 
 export async function POST(request) {
   try {

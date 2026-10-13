@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { getRollNumber } from '@/lib/rollNumber'
+import { hasSignupMetadata, createProfileForUser } from '@/lib/profileSync'
 import styles from './signup.module.css'
 
 const initialForm = {
@@ -10,20 +12,6 @@ const initialForm = {
   email: '',
   password: '',
   phoneNumber: '',
-}
-
-function getRollNumber(email) {
-  const normalizedEmail = email.trim().toLowerCase()
-  const emailParts = normalizedEmail.match(/^([^@\s]+)@(snuchennai\.edu\.in|ssn\.edu\.in)$/)
-
-  if (!emailParts) {
-    return null
-  }
-
-  const requiredDigits = emailParts[2] === 'snuchennai.edu.in' ? 8 : 7
-  const rollNumberMatch = emailParts[1].match(new RegExp(`(\\d{${requiredDigits}})$`))
-
-  return rollNumberMatch ? rollNumberMatch[1] : null
 }
 
 function validateForm(form) {
@@ -73,55 +61,6 @@ function getSignupErrorMessage(error, isProfileError = false) {
   // Surface the real reason (e.g. "Password should be at least 6 characters")
   // instead of always falling back to a generic message.
   return error?.message || 'We could not create your account. Please try again.'
-}
-
-function hasSignupMetadata(user) {
-  const metadata = user.user_metadata || {}
-
-  return Boolean(
-    typeof metadata.name === 'string' &&
-    metadata.name.trim() &&
-    typeof metadata.roll_number === 'string' &&
-    metadata.roll_number &&
-    typeof metadata.phone_number === 'string' &&
-    metadata.phone_number.trim()
-  )
-}
-
-async function createProfileForUser(user) {
-  const metadata = user.user_metadata || {}
-  const profile = {
-    id: user.id,
-    roll_number: metadata.roll_number,
-    name: metadata.name,
-    email: user.email,
-    phone_number: metadata.phone_number,
-  }
-
-  if (!profile.roll_number || !profile.name || !profile.email || !profile.phone_number) {
-    return { error: { isProfileError: true } }
-  }
-
-  const { data: existingProfile, error: profileLookupError } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (profileLookupError) {
-    return { error: Object.assign(profileLookupError, { isProfileError: true }) }
-  }
-
-  if (existingProfile) {
-    return { error: null }
-  }
-
-  const { error: profileError } = await supabase.from('profiles').insert(profile)
-  return {
-    error: profileError
-      ? Object.assign(profileError, { isProfileError: true })
-      : null,
-  }
 }
 
 export default function SignupPage() {
