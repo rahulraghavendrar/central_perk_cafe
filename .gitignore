@@ -1,6 +1,5 @@
-@"
 node_modules/
 .next/
 .env.local
 .vercel
-"@ | Set-Content .gitignore
+supabase/.temp/

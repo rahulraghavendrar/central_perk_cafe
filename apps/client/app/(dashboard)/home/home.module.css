@@ -1,0 +1,293 @@
+.page {
+  min-height: 100vh;
+  background: #f7f4ef;
+  color: #2a221b;
+  padding-bottom: 60px;
+}
+
+.banner {
+  position: relative;
+  background-image:
+    linear-gradient(135deg, rgba(17, 38, 30, 0.88) 0%, rgba(30, 77, 59, 0.82) 100%),
+    url('/images/cafe-hero.jpg');
+  background-size: cover;
+  background-position: center 65%;
+  color: #ffffff;
+  padding: 48px 24px 56px;
+  border-bottom: 4px solid #d4af37;
+  box-shadow: 0 10px 30px rgba(25, 64, 49, 0.15);
+}
+
+.bannerContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.bannerTitle {
+  font-size: 2.75rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  font-family: var(--font-display), Georgia, serif;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+}
+
+.bannerSubtitle {
+  font-size: 1.05rem;
+  color: #d6e8df;
+  max-width: 540px;
+  margin-between: 24px;
+  margin-bottom: 24px;
+}
+
+.controlsContainer {
+  max-width: 1200px;
+  margin: 28px auto 32px auto;
+  padding: 0 24px;
+}
+
+.controlsCard {
+  background: #ffffff;
+  padding: 24px 28px;
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(42, 34, 27, 0.14);
+  border: 1px solid #eae1d5;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.searchRow {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.searchInputWrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  color: #96897b;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px 0 44px;
+  font-size: 0.98rem;
+  border: 1.5px solid #dfd5c6;
+  border-radius: 10px;
+  background: #faf7f2;
+  color: #2a221b;
+  transition: all 180ms ease;
+  font-family: inherit;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #1e4d3b;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(30, 77, 59, 0.12);
+}
+
+.searchButton {
+  height: 48px;
+  padding: 0 24px;
+  background: #1e4d3b;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 180ms ease;
+  white-space: nowrap;
+}
+
+.searchButton:hover {
+  background: #15392b;
+}
+
+.filterRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0e8dd;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #7a6c5f;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 4px;
+}
+
+.filterPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1.5px solid #e2d7c8;
+  background: #ffffff;
+  color: #4a3e35;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.filterPill:hover {
+  background: #f7f2ea;
+  border-color: #d1c3b1;
+}
+
+.filterPillActive {
+  background: #1e4d3b;
+  color: #ffffff;
+  border-color: #1e4d3b;
+}
+
+.filterPillActive:hover {
+  background: #163d2e;
+}
+
+.vegDotSmall {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #2e7d32;
+}
+
+.nonVegDotSmall {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #c62828;
+}
+
+.searchResultNotice {
+  font-size: 0.9rem;
+  color: #7a6c5f;
+  font-weight: 600;
+}
+
+.searchResultNotice strong {
+  color: #1e4d3b;
+}
+
+.mainContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.loadingContainer,
+.errorContainer,
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 24px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px dashed #dfd5c6;
+  margin: 40px 0;
+}
+
+.stateIcon {
+  width: 48px;
+  height: 48px;
+  color: #1e4d3b;
+  margin-bottom: 16px;
+}
+
+.errorIcon {
+  color: #c62828;
+}
+
+.stateTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2a221b;
+  margin-bottom: 8px;
+}
+
+.stateText {
+  font-size: 0.95rem;
+  color: #7a6c5f;
+  max-width: 400px;
+  margin-bottom: 20px;
+}
+
+.retryButton {
+  padding: 10px 24px;
+  background: #1e4d3b;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.retryButton:hover {
+  background: #15392b;
+}
+
+@media (max-width: 768px) {
+  .banner {
+    padding: 30px 16px;
+  }
+
+  .bannerTitle {
+    font-size: 2rem;
+  }
+
+  .controlsContainer {
+    margin-top: -16px;
+    padding: 0 16px;
+  }
+
+  .controlsCard {
+    padding: 16px;
+  }
+
+  .searchRow {
+    flex-direction: row;
+  }
+
+  .filterRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mainContent {
+    padding: 0 16px;
+  }
+}

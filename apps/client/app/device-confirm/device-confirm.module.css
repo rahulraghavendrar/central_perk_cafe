@@ -1,0 +1,98 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background: #f5f0e8;
+}
+
+.card {
+  width: min(100%, 480px);
+  padding: 40px;
+  border: 1px solid #e4d9c9;
+  border-radius: 12px;
+  background: #fffdf9;
+  box-shadow: 0 16px 40px rgb(74 54 35 / 10%);
+}
+
+.eyebrow {
+  margin-bottom: 10px;
+  color: #8a5a33;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.card h1 {
+  color: #2e241d;
+  font-size: 1.8rem;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.intro {
+  margin-top: 10px;
+  color: #6d625a;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.formError {
+  margin-top: 18px;
+  padding: 12px 16px;
+  background: #fdf0ef;
+  border: 1px solid #f4cfcc;
+  border-radius: 8px;
+  color: #a12f29;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.buttonRow {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.yesButton,
+.noButton {
+  min-height: 46px;
+  border: 0;
+  border-radius: 6px;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 160ms ease, opacity 160ms ease;
+}
+
+.yesButton {
+  background: #316c52;
+}
+
+.yesButton:hover:not(:disabled) {
+  background: #25523d;
+}
+
+.noButton {
+  background: #a12f29;
+}
+
+.noButton:hover:not(:disabled) {
+  background: #832019;
+}
+
+.yesButton:disabled,
+.noButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.footnote {
+  margin-top: 16px;
+  color: #8a7e75;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}

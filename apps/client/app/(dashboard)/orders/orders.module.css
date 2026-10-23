@@ -1,0 +1,353 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 16px;
+  background: #f5f0e8;
+}
+
+.layout {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.card {
+  flex: 1;
+  min-width: 0;
+  padding: 40px;
+  border: 1px solid #e4d9c9;
+  border-radius: 12px;
+  background: #fffdf9;
+  box-shadow: 0 16px 40px rgb(74 54 35 / 10%);
+}
+
+.eyebrow {
+  margin-bottom: 10px;
+  color: #8a5a33;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.card h1 {
+  margin: 0;
+  color: #2e241d;
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
+.intro {
+  margin-top: 10px;
+  color: #6d625a;
+  line-height: 1.5;
+}
+
+/* ================================
+   SIDEBAR -- other live orders
+================================ */
+
+.sidebar {
+  flex-shrink: 0;
+  width: 200px;
+  position: sticky;
+  top: 24px;
+  padding: 20px 18px;
+  border: 1px solid #e4d9c9;
+  border-radius: 12px;
+  background: #fffdf9;
+  box-shadow: 0 16px 40px rgb(74 54 35 / 10%);
+}
+
+.sidebarCurrent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e6dccf;
+}
+
+.sidebarCurrentLabel {
+  color: #8a7d73;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sidebarCurrentNumber {
+  color: #1e4d3b;
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.sidebarHeading {
+  margin: 14px 0 10px;
+  color: #8a5a33;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sidebarButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebarButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #dfd1bf;
+  border-radius: 9px;
+  background: #f8f4ed;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.sidebarButton:hover {
+  border-color: #316c52;
+  background: #eef5f0;
+}
+
+.sidebarButtonNumber {
+  color: #316c52;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.sidebarButtonMeta {
+  color: #8a7d73;
+  font-size: 0.72rem;
+}
+
+@media (max-width: 720px) {
+  .layout {
+    flex-direction: column-reverse;
+  }
+
+  .sidebar {
+    width: 100%;
+    position: static;
+  }
+
+  .sidebarButtons {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .sidebarButton {
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 92px;
+  }
+}
+
+/* ================================
+   STATUS BLOCK
+================================ */
+
+.statusBlock {
+  margin: 22px 0 6px;
+  padding: 24px 20px;
+  border: 1px solid #e6dccf;
+  border-radius: 14px;
+  background: #f8f4ed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.orderNumber {
+  color: #1e4d3b;
+  font-size: clamp(2.2rem, 6vw, 2.8rem);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.statusBadge {
+  margin-top: 12px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: #316c52;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.readyLabel {
+  margin: 12px 0 0;
+  color: #2e241d;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.placedAt {
+  margin: 4px 0 0;
+  color: #8a7d73;
+  font-size: 0.78rem;
+}
+
+/* ================================
+   QR
+================================ */
+
+.qrCode {
+  display: block;
+  width: 150px;
+  height: 150px;
+  margin: 20px auto 4px;
+  padding: 10px;
+  border: 1px solid #e6dccf;
+  border-radius: 12px;
+  background: #fff;
+}
+
+/* ================================
+   ITEMS
+================================ */
+
+.sectionLabel {
+  margin: 26px 0 10px;
+  color: #8a5a33;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.itemList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.itemRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e6dccf;
+  border-radius: 12px;
+  background: #fffefa;
+}
+
+.itemInfo h2 {
+  margin: 0 0 4px;
+  color: #30251e;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.itemInfo p {
+  margin: 2px 0;
+  color: #7b7067;
+  font-size: 0.8rem;
+}
+
+.itemUnitPrice {
+  color: #a39585 !important;
+  font-size: 0.74rem !important;
+}
+
+.itemRight {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.itemQuantity {
+  color: #8a7d73;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.itemLineTotal {
+  color: #316c52;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+/* ================================
+   SUMMARY
+================================ */
+
+.summary {
+  margin: 20px 0 4px;
+  padding: 16px 18px;
+  border: 1px solid #e4d9c9;
+  border-radius: 12px;
+  background: #f8f4ed;
+}
+
+.summary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  color: #6d625a;
+  font-size: 0.9rem;
+}
+
+.summary strong {
+  color: #316c52;
+  font-weight: 650;
+}
+
+.totalRow {
+  margin-top: 6px;
+  padding-top: 11px;
+  border-top: 1px solid #dfd1bf;
+  color: #2e241d;
+  font-size: 1rem;
+}
+
+.totalRow strong {
+  font-weight: 700;
+}
+
+/* ================================
+   FOOTER
+================================ */
+
+.orderIdLine {
+  margin: 18px 0 20px;
+  color: #8a9b90;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.browseButton {
+  display: block;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 11px 26px;
+  border-radius: 9px;
+  background: #316c52;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 650;
+  text-decoration: none;
+  text-align: center;
+  transition: opacity 0.2s ease;
+}
+
+.browseButton:hover {
+  opacity: 0.88;
+}
