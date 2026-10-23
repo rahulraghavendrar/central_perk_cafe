@@ -4,43 +4,15 @@ import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthSession } from '@/lib/useAuthSession'
+import {
+  formatReadyTime,
+  formatCreatedAt,
+  itemLineTotal,
+  countItems,
+} from '@/lib/orderFormat'
 import styles from './orders.module.css'
 
 const POLL_INTERVAL_MS = 15000
-
-function formatReadyTime(iso) {
-  if (!iso) return 'As soon as possible'
-  return `Ready by ${new Date(iso).toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-  })}`
-}
-
-function formatCreatedAt(iso) {
-  if (!iso) return ''
-  return new Date(iso).toLocaleString([], {
-    day: 'numeric',
-    month: 'short',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
-function itemLineTotal(item) {
-  const extrasTotal = (item.extras || []).reduce(
-    (total, extra) =>
-      total + Number(typeof extra === 'object' ? extra.price || 0 : 0),
-    0
-  )
-  return (Number(item.price || 0) + extrasTotal) * (item.quantity || 0)
-}
-
-function countItems(order) {
-  return (order.items || []).reduce(
-    (total, item) => total + (item.quantity || 0),
-    0
-  )
-}
 
 // Wrapped in Suspense because useSearchParams() (reading the ?active=
 // deep link from the tracker) requires it during prerendering.
