@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Script from 'next/script'
 import { useAuthSession } from '@/lib/useAuthSession'
 import { useCart } from '@/app/components/CartContext'
 import styles from './cart.module.css'
@@ -108,55 +109,134 @@ export default function CartPage() {
       }
     }
 
+    if (typeof window === 'undefined' || !window.Razorpay) {
+      setOrderMessage(
+        'Payment is still loading -- please wait a moment and try again.'
+      )
+      return
+    }
+
     setConfirming(true)
     setOrderMessage('')
 
+    // Finishes placing the order once Razorpay hands back a completed,
+    // signed payment -- this is the same /api/orders POST the app has
+    // always made, just now carrying the three fields the server verifies
+    // the signature against. Nothing here is trusted on its own: the real
+    // boundary is the HMAC check inside /api/orders/route.js.
+    const placeOrder = async (paymentDetails) => {
+      try {
+        const response = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            studentId: profile.roll_number,
+            items: cartItems,
+            total,
+            parcel,
+            readyTime: readyTimestamp,
+            razorpayOrderId: paymentDetails.razorpay_order_id,
+            razorpayPaymentId: paymentDetails.razorpay_payment_id,
+            razorpaySignature: paymentDetails.razorpay_signature,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to place order')
+        }
+
+        const readyLabel = readyTimestamp
+          ? `Ready by ${formatReadyTime(readyTimestamp)}`
+          : 'Ready as soon as possible'
+
+        setConfirmedOrder({
+          orderId: data.orderId,
+          orderNumberDisplay: data.orderNumberDisplay || `#${data.orderNumber ?? ''}`,
+          readyLabel,
+        })
+
+        // Lets the floating order tracker (mounted once in the dashboard
+        // layout, so it has no direct line to this page's state) refresh
+        // immediately instead of waiting for its next poll.
+        window.dispatchEvent(new CustomEvent('order-placed'))
+
+        clearCart()
+        setParcel(false)
+        setReadyMode('asap')
+        setReadyTime('')
+      } catch (error) {
+        console.error('Order confirmation failed:', error)
+        setOrderMessage(
+          error.message ||
+            'Payment went through, but we could not place your order. Please show this to the cafe staff.'
+        )
+      } finally {
+        setConfirming(false)
+      }
+    }
+
     try {
-      const response = await fetch('/api/orders', {
+      const paymentOrderResponse = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          studentId: profile.roll_number,
-          items: cartItems,
-          total,
-          parcel,
-          readyTime: readyTimestamp,
-        }),
+        body: JSON.stringify({ total }),
       })
 
-      const data = await response.json()
+      const paymentOrderData = await paymentOrderResponse.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to place order')
+      if (!paymentOrderResponse.ok) {
+        throw new Error(paymentOrderData.error || 'Failed to start payment')
       }
 
-      const readyLabel = readyTimestamp
-        ? `Ready by ${formatReadyTime(readyTimestamp)}`
-        : 'Ready as soon as possible'
-
-      setConfirmedOrder({
-        orderId: data.orderId,
-        orderNumberDisplay: data.orderNumberDisplay || `#${data.orderNumber ?? ''}`,
-        readyLabel,
+      const razorpay = new window.Razorpay({
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        order_id: paymentOrderData.razorpayOrderId,
+        amount: paymentOrderData.amount,
+        currency: paymentOrderData.currency,
+        name: 'Central Perk Cafe',
+        description: 'Order payment',
+        // UPI only -- matches how students already pay at the counter,
+        // rather than opening Razorpay's full card/netbanking/wallet picker.
+        method: {
+          upi: true,
+          card: false,
+          netbanking: false,
+          wallet: false,
+          emi: false,
+          paylater: false,
+        },
+        prefill: {
+          name: profile?.name || '',
+          email: user?.email || '',
+          contact: profile?.phone_number || '',
+        },
+        theme: { color: '#316c52' },
+        handler: (response) => {
+          placeOrder(response)
+        },
+        modal: {
+          // Closing the widget without paying leaves no order behind --
+          // /api/orders is never called, so nothing is inserted and no
+          // daily order number gets claimed for it.
+          ondismiss: () => {
+            setConfirming(false)
+            setOrderMessage("Payment cancelled -- your order wasn't placed.")
+          },
+        },
       })
 
-      // Lets the floating order tracker (mounted once in the dashboard
-      // layout, so it has no direct line to this page's state) refresh
-      // immediately instead of waiting for its next poll.
-      window.dispatchEvent(new CustomEvent('order-placed'))
-
-      clearCart()
-      setParcel(false)
-      setReadyMode('asap')
-      setReadyTime('')
+      razorpay.open()
     } catch (error) {
-      console.error('Order confirmation failed:', error)
+      console.error('Starting payment failed:', error)
       setOrderMessage(
-        error.message || 'Failed to confirm order. Please try again.'
+        error.message || 'Failed to start payment. Please try again.'
       )
-    } finally {
       setConfirming(false)
     }
   }
@@ -173,6 +253,10 @@ export default function CartPage() {
 
   return (
     <div className={styles.page}>
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="lazyOnload"
+      />
       <div className={styles.card}>
         <p className={styles.eyebrow}>CENTRAL PERK CAFE</p>
 

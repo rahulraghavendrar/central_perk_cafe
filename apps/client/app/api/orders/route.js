@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { ObjectId } from 'mongodb'
 import QRCode from 'qrcode'
 import clientPromise from '@/lib/mongodb'
+import { verifyPaymentSignature } from '@/lib/razorpay'
 
 // The cafe is physically in India, so the daily order-number counter
 // always resets at midnight India time -- not whatever time zone the
@@ -40,6 +41,9 @@ export async function POST(request) {
       total,
       parcel,
       readyTime,
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
     } = body
 
     if (!studentId) {
@@ -52,6 +56,32 @@ export async function POST(request) {
     if (!items || items.length === 0) {
       return NextResponse.json(
         { error: 'Cart is empty' },
+        { status: 400 }
+      )
+    }
+
+    // This is the real payment boundary -- never the client asserting
+    // "payment succeeded". A request missing any of these three fields,
+    // or whose signature doesn't verify against RAZORPAY_KEY_SECRET, is
+    // rejected before anything touches the database: no order number
+    // claimed, no document inserted. Only a verified signature ever
+    // results in paymentStatus: 'Successful'.
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return NextResponse.json(
+        { error: 'Payment details are missing.' },
+        { status: 400 }
+      )
+    }
+
+    const paymentVerified = verifyPaymentSignature(
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature
+    )
+
+    if (!paymentVerified) {
+      return NextResponse.json(
+        { error: 'Payment verification failed.' },
         { status: 400 }
       )
     }
@@ -132,6 +162,8 @@ export async function POST(request) {
       readyTime: readyTimeValue,
       qrCode,
       paymentStatus: 'Successful',
+      razorpayOrderId,
+      razorpayPaymentId,
       // Order lifecycle: 'Preparing' -> 'Ready for Pickup' -> 'Collected'.
       // Every order starts at 'Preparing' -- only the admin side (not built
       // yet) will ever move it further along. The order tracker and order
